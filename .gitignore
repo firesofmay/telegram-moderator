@@ -22,3 +22,6 @@ var/
 *.egg
 
 origin-telegram-logger-bot
+
+# Environment Variables
+/.env

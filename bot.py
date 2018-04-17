@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Group Chat Logger
 
 This bot is a modified version of the echo2 bot found here:
@@ -18,11 +16,14 @@ from time import strftime
 import re
 import unidecode
 from mwt import MWT
+from confusables import Confusables
+
 
 class TelegramMonitorBot:
 
-
     def __init__(self):
+        print(os.environ)
+        confusablesInstance = Confusables('confusables.txt')
         self.debug = os.environ.get('DEBUG') is not None
 
         # Users to notify of violoations
@@ -38,49 +39,48 @@ class TelegramMonitorBot:
         # Regex for message patterns that cause user ban
         self.message_ban_patterns = os.environ['MESSAGE_BAN_PATTERNS']
         self.message_ban_re = (re.compile(
-            self.message_ban_patterns,
+            confusablesInstance.confusables_regex(self.message_ban_patterns),
             re.IGNORECASE | re.VERBOSE)
             if self.message_ban_patterns else None)
 
         # Regex for message patterns that cause message to be hidden
         self.message_hide_patterns = os.environ['MESSAGE_HIDE_PATTERNS']
         self.message_hide_re = (re.compile(
-            self.message_hide_patterns,
+            confusablesInstance.confusables_regex(self.message_hide_patterns),
             re.IGNORECASE | re.VERBOSE)
             if self.message_hide_patterns else None)
 
         # Regex for name patterns that cause user to be banned
         self.name_ban_patterns = os.environ['NAME_BAN_PATTERNS']
         self.name_ban_re = (re.compile(
-            self.name_ban_patterns,
+            confusablesInstance.confusables_regex(self.name_ban_patterns),
             re.IGNORECASE | re.VERBOSE)
             if self.name_ban_patterns else None)
 
-
-    @MWT(timeout=60*60)
+    @MWT(timeout=60 * 60)
     def get_admin_ids(self, bot, chat_id):
         """ Returns a list of admin IDs for a given chat. Results are cached for 1 hour. """
         return [admin.user.id for admin in bot.get_chat_administrators(chat_id)]
 
-
     def ban_user(self, update):
         """ Ban user """
-        kick_success = update.message.chat.kick_member(update.message.from_user.id)
-
+        kick_success = update.message.chat.kick_member(
+            update.message.from_user.id)
 
     def security_check_username(self, bot, update):
         """ Test username for security violations """
 
         full_name = (update.message.from_user.first_name + " "
-            + update.message.from_user.last_name)
+                     + update.message.from_user.last_name)
         if self.name_ban_re and self.name_ban_re.search(full_name):
             # Logging
-            log_message = "Ban match full name: {}".format(full_name.encode('utf-8'))
+            log_message = "Ban match full name: {}".format(
+                full_name.encode('utf-8'))
             if self.debug:
                 update.message.reply_text(log_message)
             print(log_message)
             for notify_user_id in self.notify_user_ids:
-                print (notify_user_id,"gets notified")
+                print(notify_user_id, "gets notified")
                 bot.send_message(
                     chat_id=notify_user_id,
                     text=log_message)
@@ -97,7 +97,8 @@ class TelegramMonitorBot:
 
         if self.name_ban_re and self.name_ban_re.search(update.message.from_user.username or ''):
             # Logging
-            log_message = "Ban match username: {}".format(update.message.from_user.username.encode('utf-8'))
+            log_message = "Ban match username: {}".format(
+                update.message.from_user.username.encode('utf-8'))
             if self.debug:
                 update.message.reply_text(log_message)
             print(log_message)
@@ -116,7 +117,6 @@ class TelegramMonitorBot:
             s.commit()
             s.close()
 
-
     def security_check_message(self, bot, update):
         """ Test message for security violations """
 
@@ -127,7 +127,8 @@ class TelegramMonitorBot:
 
         if self.message_ban_re and self.message_ban_re.search(message):
             # Logging
-            log_message = "Ban message match: {}".format(update.message.text.encode('utf-8'))
+            log_message = "Ban message match: {}".format(
+                update.message.text.encode('utf-8'))
             if self.debug:
                 update.message.reply_text(log_message)
             print(log_message)
@@ -150,7 +151,8 @@ class TelegramMonitorBot:
 
         elif self.message_hide_re and self.message_hide_re.search(message):
             # Logging
-            log_message = "Hide match: {}".format(update.message.text.encode('utf-8'))
+            log_message = "Hide match: {}".format(
+                update.message.text.encode('utf-8'))
             if self.debug:
                 update.message.reply_text(log_message)
             print(log_message)
@@ -168,7 +170,6 @@ class TelegramMonitorBot:
             s.add(messageHide)
             s.commit()
             s.close()
-
 
     def logger(self, bot, update):
         """ Primary Logger. Handles incoming bot messages and saves them to DB """
@@ -196,18 +197,20 @@ class TelegramMonitorBot:
                     self.log_message(user.id, update.message.text)
                     print("User added: {}".format(user.id))
                 else:
-                    print("Something went wrong adding the user {}".format(user.id), file=sys.stderr)
+                    print("Something went wrong adding the user {}".format(
+                        user.id), file=sys.stderr)
 
             if update.message.text:
                 print("{} {} ({}) : {}".format(
                     strftime("%Y-%m-%dT%H:%M:%S"),
                     user.id,
-                    (user.username or (user.first_name + " " + user.last_name) or "").encode('utf-8'),
+                    (user.username or (user.first_name + " " +
+                                       user.last_name) or "").encode('utf-8'),
                     update.message.text.encode('utf-8'))
                 )
 
             if (self.debug or
-                update.message.from_user.id not in self.get_admin_ids(bot, update.message.chat_id)):
+                    update.message.from_user.id not in self.get_admin_ids(bot, update.message.chat_id)):
                 # Security checks
                 self.security_check_username(bot, update)
                 self.security_check_message(bot, update)
@@ -216,7 +219,6 @@ class TelegramMonitorBot:
 
         except Exception as e:
             print("Error: {}".format(e))
-
 
     # DB queries
     def id_exists(self, id_value):
@@ -230,7 +232,6 @@ class TelegramMonitorBot:
 
         return bool_set
 
-
     def log_message(self, user_id, user_message):
         try:
             s = session()
@@ -240,7 +241,6 @@ class TelegramMonitorBot:
             s.close()
         except Exception as e:
             print("Error: {}".format(e))
-
 
     def add_user(self, user_id, first_name, last_name, username):
         try:
@@ -257,15 +257,14 @@ class TelegramMonitorBot:
         except Exception as e:
             print("Error: {}".format(e))
 
-
     def error(self, bot, update, error):
         """ Log Errors caused by Updates. """
         print("Update '{}' caused error '{}'".format(update, error),
-            file=sys.stderr)
-
+              file=sys.stderr)
 
     def start(self):
         """ Start the bot. """
+        print("Starting bot.")
 
         # Create the EventHandler and pass it your bot's token.
         updater = Updater(os.environ["TELEGRAM_BOT_TOKEN"])
@@ -278,14 +277,14 @@ class TelegramMonitorBot:
         # on noncommand i.e message - echo the message on Telegram
         dp.add_handler(MessageHandler(
             Filters.text,
-            lambda bot, update : self.logger(bot, update)
+            lambda bot, update: self.logger(bot, update)
         ))
 
         # dp.add_handler(MessageHandler(Filters.status_update, status))
 
         # log all errors
         dp.add_error_handler(
-            lambda bot, update, error : self.error(bot, update, error)
+            lambda bot, update, error: self.error(bot, update, error)
         )
 
         # Start the Bot
@@ -300,6 +299,6 @@ class TelegramMonitorBot:
 
 
 if __name__ == '__main__':
+    print("Running bot.")
     c = TelegramMonitorBot()
-
     c.start()

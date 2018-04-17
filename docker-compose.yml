@@ -1,0 +1,28 @@
+version: '3'
+services:
+  DB:
+    image: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+     - 5432:5432
+    environment:
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB=telegram
+    restart: on-failure
+  telegram-moderator:
+    depends_on:
+      - DB
+    environment:
+      - TELEGRAM_BOT_TOKEN
+      - TELEGRAM_BOT_POSTGRES_URL
+      - NOTIFY_USER_IDS
+      - CHAT_IDS
+      - NAME_BAN_PATTERNS
+      - MESSAGE_HIDE_PATTERNS
+      - MESSAGE_BAN_PATTERNS
+    build: .
+    restart: on-failure
+
+volumes:
+  pgdata:

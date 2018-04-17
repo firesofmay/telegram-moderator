@@ -3,6 +3,8 @@ from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 import os
 
+print("Creating database model.")
+
 postgres_url = os.environ["TELEGRAM_BOT_POSTGRES_URL"]
 
 
@@ -53,4 +55,4 @@ session = sessionmaker()
 session.configure(bind=engine)
 Base.metadata.create_all(engine)
 
-print ("Created database model")
+print("Created database model.")
