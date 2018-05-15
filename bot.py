@@ -70,8 +70,8 @@ class TelegramMonitorBot:
     def security_check_username(self, bot, update):
         """ Test username for security violations """
 
-        full_name = (update.message.from_user.first_name + " "
-                     + update.message.from_user.last_name)
+        full_name = ((update.message.from_user.first_name or "") + " "
+                     + (update.message.from_user.last_name or ""))
         if self.name_ban_re and self.name_ban_re.search(full_name):
             # Logging
             log_message = "Ban match full name: {}".format(
@@ -212,8 +212,8 @@ class TelegramMonitorBot:
             if (self.debug or
                     update.message.from_user.id not in self.get_admin_ids(bot, update.message.chat_id)):
                 # Security checks
-                self.security_check_username(bot, update)
                 self.security_check_message(bot, update)
+                self.security_check_username(bot, update)
             else:
                 print("Skipping checks. User is admin: {}".format(user.id))
 
